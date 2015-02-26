@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -72,6 +72,31 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
+def graphSearch(problem, fringe):
+    visited = set()
+    path = [(problem.getStartState(), "", 0)]
+    fringe.push(path)
+
+    while not fringe.isEmpty():
+        currentPath = fringe.pop()
+        currentState, _action, _cost = currentPath[-1]
+        if currentState in visited:
+            continue
+
+        if(problem.isGoalState(currentState)):
+            return currentPath
+        else:
+            for (successor, cost, action) in problem.getSuccessors(currentState):
+                fringe.push(currentPath + [(successor, cost, action)])
+            visited.add(currentState)
+
+def getListOfActions(path):
+    actions = []
+    for (state, action, cost) in path:
+        if action is not "":
+            actions.append(action)
+    return actions
+
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
@@ -87,17 +112,16 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.Stack()
+    path = graphSearch(problem, fringe)
+    return getListOfActions(path)
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
-def uniformCostSearch(problem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.Queue()
+    path = graphSearch(problem, fringe)
+    return getListOfActions(path)
 
 def nullHeuristic(state, problem=None):
     """
@@ -105,11 +129,45 @@ def nullHeuristic(state, problem=None):
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+    
+class SearchState:
+    def __init__(self, coordinates, plan, accumulative_cost):
+        self.coordinates = coordinates
+        self.plan = plan
+        self.accumulative_cost = accumulative_cost
+
+    def add(self, coordinates, action, cost):
+        return SearchState(coordinates, self.plan + [action], self.accumulative_cost + cost)
+
+def prioritySearch(problem, heuristic=nullHeuristic):
+    state = problem.getStartState()
+    fringe = util.PriorityQueue()
+    plan = []
+    visited = set()
+    currentState = SearchState(problem.getStartState(), [], 0)
+    fringe.push(currentState, currentState.accumulative_cost)
+
+    while(True):
+       currentState = fringe.pop()
+       if currentState.coordinates in visited:
+           continue
+       if(problem.isGoalState(currentState.coordinates)):
+           return currentState.plan
+       else:
+           for (successor, action, cost) in problem.getSuccessors(currentState.coordinates):
+               newState = currentState.add(successor, action, cost)
+               fringe.push(newState, newState.accumulative_cost + heuristic(newState.coordinates, problem))
+           visited.add(currentState.coordinates)
+
+def uniformCostSearch(problem):
+    """Search the node of least total cost first."""
+    "*** YOUR CODE HERE ***"
+    return prioritySearch(problem)
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return prioritySearch(problem, heuristic)
 
 
 # Abbreviations
