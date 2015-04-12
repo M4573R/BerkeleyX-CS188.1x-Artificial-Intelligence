@@ -1,15 +1,15 @@
 # qlearningAgents.py
 # ------------------
-# Licensing Information:  You are free to use or extend these projects for 
-# educational purposes provided that (1) you do not distribute or publish 
-# solutions, (2) you retain this notice, and (3) you provide clear 
-# attribution to UC Berkeley, including a link to 
+# Licensing Information:  You are free to use or extend these projects for
+# educational purposes provided that (1) you do not distribute or publish
+# solutions, (2) you retain this notice, and (3) you provide clear
+# attribution to UC Berkeley, including a link to
 # http://inst.eecs.berkeley.edu/~cs188/pacman/pacman.html
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
-# The core projects and autograders were primarily created by John DeNero 
+# The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
-# Student side autograding was added by Brad Miller, Nick Hay, and 
+# Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
@@ -44,6 +44,7 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         "*** YOUR CODE HERE ***"
+        self.qValues = util.Counter()
 
     def getQValue(self, state, action):
         """
@@ -52,7 +53,10 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        if self.qValues:
+            return self.qValues[(state, action)]
+        else:
+            return 0.0
 
 
     def computeValueFromQValues(self, state):
@@ -63,7 +67,8 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        q, _ = self.computeActionAndValueFromQValues(state)
+        return q
 
     def computeActionFromQValues(self, state):
         """
@@ -72,7 +77,12 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        _, action = self.computeActionAndValueFromQValues(state)
+        return action
+
+    def computeActionAndValueFromQValues(self, state):
+        qvals = [ (self.getQValue(state, action), action) for action in self.getLegalActions(state) ]
+        return (0, None) if len(qvals) == 0 else max(qvals)
 
     def getAction(self, state):
         """
@@ -89,8 +99,13 @@ class QLearningAgent(ReinforcementAgent):
         legalActions = self.getLegalActions(state)
         action = None
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        if len(legalActions) < 1 :
+            return action
 
+        if util.flipCoin(self.epsilon):
+            action = random.choice(legalActions)
+        else:
+            action = self.getPolicy(state)
         return action
 
     def update(self, state, action, nextState, reward):
@@ -103,7 +118,9 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.qValues[state, action] = \
+            ((1-self.alpha) * self.getQValue(state, action)) + \
+            (self.alpha * (reward + (self.discount * self.getValue(nextState))))
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
@@ -166,14 +183,20 @@ class ApproximateQAgent(PacmanQAgent):
           where * is the dotProduct operator
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        featureVector = self.featExtractor.getFeatures(state, action)
+        Q = [self.weights[feature] * featureVector[feature] for feature in featureVector]
+
+        return 0 if len(Q) < 1 else sum(Q)
 
     def update(self, state, action, nextState, reward):
         """
            Should update your weights based on transition
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        correction = (reward + self.discount*self.getValue(nextState)) - self.getQValue(state,action)
+        featureVector = self.featExtractor.getFeatures(state, action)
+        for feature in featureVector.keys():
+            self.weights[feature] += self.alpha*correction*featureVector[feature]
 
     def final(self, state):
         "Called at the end of each game."
